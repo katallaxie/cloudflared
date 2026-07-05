@@ -1,5 +1,5 @@
 # Stage 1: Use Debian base for building cloudflared
-FROM golang:1.26-alpine AS builder
+FROM golang:1.26-bookworm AS builder
 
 # Use a build argument to specify the cloudflared version
 ARG CLOUDFLARED_VERSION=master
