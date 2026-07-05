@@ -2,7 +2,7 @@ name: Check for Cloudflared Releases and Build Docker Image
 
 on:
   schedule:
-    - cron: '0 0 * * *' # This runs the workflow daily at midnight
+    - cron: "0 0 * * *" # This runs the workflow daily at midnight
   workflow_dispatch: # Allows manual triggering
 
 permissions:
@@ -12,16 +12,13 @@ jobs:
   check_and_build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      - uses: actions/checkout@v7
         with:
-          python-version: '3.x'
-
-      - name: Install dependencies
-        run: pip install requests
+          fetch-depth: 0
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.x"
+      - run: pip install requests
 
       - name: Check for new cloudflared release
         id: check_release
