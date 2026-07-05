@@ -1,34 +1,5 @@
 # Stage 1: Use Debian base for building cloudflared
-FROM debian:stable AS builder
-
-ENV DEBIAN_FRONTEND=noninteractive
-
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    git \
-    pkg-config \
-    libssl-dev \
-    ca-certificates \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
-
-# Copy the Go toolchain built for ARMv5, with version auto-detected by build script
-# The filename is dynamic, use a build ARG to pass it in
-ARG GO_TOOLCHAIN_TARBALL
-COPY ${GO_TOOLCHAIN_TARBALL} /tmp/
-
-RUN mkdir -p /usr/local/go && \
-    tar -C /usr/local/go -xzf /tmp/${GO_TOOLCHAIN_TARBALL} && \
-    if [ -d /usr/local/go/bin/linux_arm ]; then \
-      mv -f /usr/local/go/bin/linux_arm/* /usr/local/go/bin/ && \
-      rmdir /usr/local/go/bin/linux_arm; \
-    fi && \
-    rm /tmp/${GO_TOOLCHAIN_TARBALL}
-
-ENV GOROOT=/usr/local/go
-ENV PATH=$GOROOT/bin:$PATH
-ENV GOPATH=/go
-ENV GO111MODULE=on
-ENV GOPROXY=https://proxy.golang.org,direct
+FROM golang:1.26 AS builder
 
 # Use a build argument to specify the cloudflared version
 ARG CLOUDFLARED_VERSION=master
