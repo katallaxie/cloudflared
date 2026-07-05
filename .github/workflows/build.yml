@@ -83,8 +83,7 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_TOKEN }}
 
-      - name: Build and push
-        if: steps.check_release.outputs.new_version
+      - if: steps.check_release.outputs.new_version
         uses: docker/build-push-action@v7
         with:
           context: .
@@ -94,8 +93,6 @@ jobs:
             katallaxie/cloudflared:latest
           build-args: |
             CLOUDFLARED_VERSION=${{ steps.check_release.outputs.new_version }}
-            GO_TOOLCHAIN_TARBALL=${{ steps.go_meta.outputs.go_toolchain_tarball }}
-          platforms: linux/arm/v5
 
       - if: steps.check_release.outputs.new_version
         env:
@@ -108,8 +105,7 @@ jobs:
           git commit -m "ci: update latest_version.txt to ${{ steps.check_release.outputs.new_version }}"
           git push "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:${GITHUB_REF}
 
-      - name: Create tag for release
-        if: steps.check_release.outputs.new_version
+      - if: steps.check_release.outputs.new_version
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -120,8 +116,7 @@ jobs:
             echo "Tag ${{ steps.check_release.outputs.new_version }} already exists."
           fi
 
-      - name: Check if release exists
-        id: release_check
+      - id: release_check
         if: steps.check_release.outputs.new_version
         run: |
           if gh release view ${{ steps.check_release.outputs.new_version }} >/dev/null 2>&1; then

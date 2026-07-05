@@ -11,9 +11,6 @@ WORKDIR /cloudflared
 # Checkout the specified version
 RUN git checkout $CLOUDFLARED_VERSION
 
-# Ensure Go is executable
-RUN chmod +x /usr/local/go/bin/go
-
 RUN go mod download
 
 RUN GOOS=linux GOARCH=arm GOARM=5 go build -o /cloudflared/cloudflared ./cmd/cloudflared
