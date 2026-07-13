@@ -93,6 +93,7 @@ jobs:
             katallaxie/cloudflared:latest
           build-args: |
             CLOUDFLARED_VERSION=${{ steps.check_release.outputs.new_version }}
+          platforms: linux/arm/v5
 
       - if: steps.check_release.outputs.new_version
         env:
