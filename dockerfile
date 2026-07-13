@@ -1,5 +1,5 @@
 # Stage 1: Use Debian base for building cloudflared
-FROM golang:1.26-bookworm AS builder
+FROM arm32v5/golang:1.26 AS builder
 
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl git && rm -rf /var/lib/apt/lists/*
 
