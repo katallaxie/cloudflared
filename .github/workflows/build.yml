@@ -87,6 +87,18 @@ jobs:
         uses: docker/build-push-action@v7
         with:
           context: .
+          file: Dockerfile.dev
+          push: false
+          tags: |
+            katallaxie/cloudflared-dev:latest
+          build-args: |
+            CLOUDFLARED_VERSION=${{ steps.check_release.outputs.new_version }}
+          platforms: linux/amd64,linux/arm64
+
+      - if: steps.check_release.outputs.new_version
+        uses: docker/build-push-action@v7
+        with:
+          context: .
           push: true
           tags: |
             katallaxie/cloudflared:${{ steps.check_release.outputs.new_version }}

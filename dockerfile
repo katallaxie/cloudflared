@@ -1,21 +1,5 @@
 # Stage 1: Use Debian base for building cloudflared
-FROM arm32v5/golang:1.20.14 AS builder
-
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl git && rm -rf /var/lib/apt/lists/*
-
-# Use a build argument to specify the cloudflared version
-ARG CLOUDFLARED_VERSION=master
-
-RUN git clone https://github.com/cloudflare/cloudflared.git /cloudflared
-
-WORKDIR /cloudflared
-
-# Checkout the specified version
-RUN git checkout $CLOUDFLARED_VERSION
-
-RUN go mod download
-
-RUN GOOS=linux GOARCH=arm GOARM=5 go build -o /cloudflared/cloudflared ./cmd/cloudflared
+FROM katallaxie/cloudflared-dev:latest as builder
 
 # Stage 2: Minimal runtime image
 FROM debian:stable-slim
