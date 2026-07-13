@@ -1,3 +1,17 @@
+# Stage 1: Use Debian base for building cloudflared
+FROM debian:stable AS builder
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    pkg-config \
+    libssl-dev \
+    ca-certificates \
+    curl \
+    tzdata \
+    && rm -rf /var/lib/apt/lists/*
+
 # Stage 2: Minimal runtime image
 FROM busybox:stable-glibc
 
@@ -14,7 +28,7 @@ COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 
 COPY --from=builder /usr/share/zoneinfo /usr/share/zoneinfo
 
-COPY --from=builder --chown=10001:10001 --chmod=755 /cloudflared/cloudflared /usr/local/bin/cloudflared
+COPY --chown=10001:10001 --chmod=755 /cloudflared/cloudflared /usr/local/bin/cloudflared
 
 ENV TZ=UTC
 
