@@ -71,6 +71,8 @@ jobs:
 
       - if: steps.check_release.outputs.new_version
         uses: docker/setup-buildx-action@v4
+        with:
+          driver-opts: network=host
 
       - if: steps.check_release.outputs.new_version
         run: |
@@ -88,9 +90,8 @@ jobs:
         with:
           context: .
           file: Dockerfile.dev
-          push: false
-          tags: |
-            katallaxie/cloudflared-dev:latest
+          push: true
+          tags: localhost:5000/katallaxie/cloudflared:latest
           build-args: |
             CLOUDFLARED_VERSION=${{ steps.check_release.outputs.new_version }}
           platforms: linux/amd64,linux/arm64

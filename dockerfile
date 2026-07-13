@@ -1,5 +1,5 @@
 # Stage 1: Use Debian base for building cloudflared
-FROM katallaxie/cloudflared-dev:latest as builder
+FROM localhost:5000/katallaxie/cloudflared:latest as builder
 
 # Stage 2: Minimal runtime image
 FROM debian:stable-slim
