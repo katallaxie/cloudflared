@@ -79,7 +79,7 @@ jobs:
       - uses: docker/setup-qemu-action@v4
 
       # Setup go for cross-compilation
-      - uses: setup-go@v5
+      - uses: actions/setup-go@v6
         with:
           version: '1.26'
 
