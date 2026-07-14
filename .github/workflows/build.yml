@@ -2,13 +2,13 @@ name: Build
 
 on:
   workflow_call:
+  workflow_dispatch: # Allows manual triggering
     inputs:
       ref:
         description: 'The git ref to build (default: head)'
         default: 'head'
         type: string
         required: true
-  workflow_dispatch: # Allows manual triggering
 
 permissions:
   contents: write
