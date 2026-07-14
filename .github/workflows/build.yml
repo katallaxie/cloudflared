@@ -53,7 +53,7 @@ jobs:
 
       - working-directory: cloudflared
         run: |
-          GOOS=linux GOARCH=arm GOARM=5 go build -o cloudflared/cloudflared ./cmd/cloudflared
+          GOOS=linux GOARCH=arm GOARM=5 go build -o cloudflared ./cmd/cloudflared
 
       - uses: docker/build-push-action@v7
         with:
