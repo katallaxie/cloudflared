@@ -17,4 +17,4 @@ COPY --chmod=0755 /cloudflared/cloudflared /usr/local/bin
 
 # command / entrypoint of container
 ENTRYPOINT ["cloudflared"]
-CMD ["tunnel", "--no-autoupdate", "run", "--token", "$TUNNEL_TOKEN"]
+CMD ["tunnel", "--no-autoupdate", "run"]
