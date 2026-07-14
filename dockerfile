@@ -1,14 +1,17 @@
 # use a distroless base image with glibc
-FROM gcr.io/distroless/base-debian13:nonroot
+FROM debian:13-slim
 
-# copy our compiled binary
-COPY --chown=nonroot --chmod=755 cloudflared/cloudflared /usr/local/bin/cloudflared
+RUN \
+    apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y \
+        ca-certificates && \
+    apt-get autoclean && \
+    rm -rf \
+      /var/lib/apt/lists/* \
+      /var/tmp/* \
+      /tmp/*
 
-# run as nonroot user
-# We need to use numeric user id's because Kubernetes doesn't support strings:
-# https://github.com/kubernetes/kubernetes/blob/v1.33.2/pkg/kubelet/kuberuntime/security_context_others.go#L49
-# The `nonroot` user maps to `65532`, from: https://github.com/GoogleContainerTools/distroless/blob/main/common/variables.bzl#L18
-USER 65532:65532
+COPY --chmod=0755  cloudflared/cloudflared /usr/local/bin/cloudflared
 
 # command / entrypoint of container
 ENTRYPOINT ["cloudflared", "--no-autoupdate"]
