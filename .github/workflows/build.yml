@@ -1,4 +1,4 @@
-name: Check for Cloudflared Releases and Build Docker Image
+name: Build
 
 on:
   workflow_call:
