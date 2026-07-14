@@ -1,39 +1,17 @@
-# Stage 1: Use Debian base for building cloudflared
-FROM debian:stable AS builder
+# use a distroless base image with glibc
+FROM gcr.io/distroless/base-debian13:nonroot@sha256:b78832f41c8128046807c24840ebee4f1c18ba7870eed423d8750c272c15e147
 
-ENV DEBIAN_FRONTEND=noninteractive
+LABEL org.opencontainers.image.source="https://github.com/cloudflare/cloudflared"
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    git \
-    pkg-config \
-    libssl-dev \
-    ca-certificates \
-    curl \
-    tzdata \
-    && rm -rf /var/lib/apt/lists/*
+# copy our compiled binary
+COPY --chown=nonroot --chmod=755 cloudflared/cloudflared /usr/local/bin/cloudflared
 
-# Stage 2: Minimal runtime image
-FROM busybox:stable-glibc
-
-ENV PATH=/usr/local/bin:/usr/local/sbin:/usr/sbin:/usr/bin:/sbin:/bin
-
-RUN addgroup -g 10001 cloudflared && \
-    adduser -D -H -u 10001 -G cloudflared cloudflared
-
-RUN mkdir -p /etc/cloudflared && \
-    chown 10001:10001 /etc/cloudflared
-
-# Copy root CA certificates from the builder stage
-COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
-
-COPY --from=builder /usr/share/zoneinfo /usr/share/zoneinfo
-
-COPY --chown=10001:10001 --chmod=755 cloudflared/cloudflared /usr/local/bin/cloudflared
-
-ENV TZ=UTC
-
-USER 10001:10001
+# run as nonroot user
+# We need to use numeric user id's because Kubernetes doesn't support strings:
+# https://github.com/kubernetes/kubernetes/blob/v1.33.2/pkg/kubelet/kuberuntime/security_context_others.go#L49
+# The `nonroot` user maps to `65532`, from: https://github.com/GoogleContainerTools/distroless/blob/main/common/variables.bzl#L18
+USER 65532:65532
 
 # command / entrypoint of container
-ENTRYPOINT ["cloudflared"]
-CMD ["tunnel", "--no-autoupdate", "run"]
+ENTRYPOINT ["cloudflared", "--no-autoupdate"]
+CMD ["version"]
