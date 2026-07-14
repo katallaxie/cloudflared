@@ -6,7 +6,6 @@ on:
       ref:
         type: string
         required: true
-  workflow_dispatch: # Allows manual triggering
 
 permissions:
   contents: write
