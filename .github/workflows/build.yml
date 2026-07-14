@@ -4,8 +4,11 @@ on:
   workflow_call:
     inputs:
       ref:
+        description: 'The git ref to build (default: head)'
+        default: 'head'
         type: string
         required: true
+  workflow_dispatch: # Allows manual triggering
 
 permissions:
   contents: write
@@ -58,7 +61,7 @@ jobs:
           file: Dockerfile
           push: true
           tags: |
-            katallaxie/cloudflared:${{ steps.check_release.outputs.new_version }}
+            katallaxie/cloudflared:${{ inputs.ref }}
             katallaxie/cloudflared:latest
           build-args: |
             CLOUDFLARED_VERSION=${{ inputs.ref }}
