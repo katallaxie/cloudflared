@@ -11,8 +11,10 @@ RUN \
       /var/tmp/* \
       /tmp/*
 
+ENV TUNNEL_TOKEN=
+
 COPY --chmod=0755 /cloudflared/cloudflared /usr/local/bin
 
 # command / entrypoint of container
-ENTRYPOINT ["cloudflared", "--no-autoupdate"]
-CMD ["version"]
+ENTRYPOINT ["cloudflared"]
+CMD ["tunnel", "--no-autoupdate", "run", "--token", "$TUNNEL_TOKEN"]
