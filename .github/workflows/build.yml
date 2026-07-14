@@ -1,8 +1,11 @@
 name: Check for Cloudflared Releases and Build Docker Image
 
 on:
-  schedule:
-    - cron: "0 0 * * *" # This runs the workflow daily at midnight
+  workflow_call:
+    inputs:
+      ref:
+        type: string
+        required: true
   workflow_dispatch: # Allows manual triggering
 
 permissions:
@@ -16,64 +19,12 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-python@v6
-        with:
-          python-version: "3.x"
-
-      - run: pip install requests
-
-      - id: check_release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          python - <<EOF
-          import requests
-          import os
-          import sys
-
-          headers = {
-              "Authorization": f"Bearer {os.environ.get('GITHUB_TOKEN')}",
-              "Accept": "application/vnd.github+json"
-          }
-
-          try:
-              response = requests.get(
-                  'https://api.github.com/repos/cloudflare/cloudflared/releases/latest',
-                  headers=headers,
-                  timeout=10
-              )
-              if response.status_code != 200:
-                  print(f"::warning::GitHub API error: {response.status_code} - {response.text}", file=sys.stderr)
-                  sys.exit(0)  # Exit with warning, do not fail workflow
-
-              data = response.json()
-              latest_version = data.get('tag_name')
-              if not latest_version:
-                  print(f'::warning::"tag_name" not found in response. Response: {data}', file=sys.stderr)
-                  sys.exit(0)  # Exit with warning, do not fail workflow
-
-              try:
-                  with open('latest_version.txt', 'r') as f:
-                      current_version = f.read().strip()
-              except FileNotFoundError:
-                  current_version = ""
-
-              if latest_version != current_version:
-                  with open(os.environ['GITHUB_OUTPUT'], 'a') as gh_out:
-                      print(f'new_version={latest_version}', file=gh_out)
-              else:
-                  print('No new version found.')
-          except Exception as e:
-              print(f"::warning::Exception occurred: {e}", file=sys.stderr)
-              sys.exit(0)  # Exit with warning, do not fail workflow
-          EOF
-
       # Checkout cloudflared, from https://github.com/cloudflare/cloudflared.git /cloudflared
       - uses: actions/checkout@v7
         with:
           repository: cloudflare/cloudflared
           path: cloudflared
-          ref: ${{ steps.check_release.outputs.new_version }}
+          ref: ${{ inputs.ref }}
 
       # Enable QEMU for ARM emulation in Buildx
       - uses: docker/setup-qemu-action@v4
@@ -83,32 +34,26 @@ jobs:
         with:
           go-version-file: cloudflared/go.mod
 
-      - if: steps.check_release.outputs.new_version
-        uses: docker/setup-buildx-action@v4
+      - uses: docker/setup-buildx-action@v4
 
-      - if: steps.check_release.outputs.new_version
-        run: |
+      - run: |
           sudo apt-get update
           sudo apt-get install -y gcc-arm-linux-gnueabi curl git tar
 
-      - if: steps.check_release.outputs.new_version
-        uses: docker/login-action@v4
+      - uses: docker/login-action@v4
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_TOKEN }}
 
-      - if: steps.check_release.outputs.new_version
-        working-directory: cloudflared
+      - working-directory: cloudflared
         run: |
           go mod download
 
-      - if: steps.check_release.outputs.new_version
-        working-directory: cloudflared
+      - working-directory: cloudflared
         run: |
           GOOS=linux GOARCH=arm GOARM=5 go build -o cloudflared/cloudflared ./cmd/cloudflared
 
-      - if: steps.check_release.outputs.new_version
-        uses: docker/build-push-action@v7
+      - uses: docker/build-push-action@v7
         with:
           context: .
           file: Dockerfile
@@ -117,61 +62,5 @@ jobs:
             katallaxie/cloudflared:${{ steps.check_release.outputs.new_version }}
             katallaxie/cloudflared:latest
           build-args: |
-            CLOUDFLARED_VERSION=${{ steps.check_release.outputs.new_version }}
+            CLOUDFLARED_VERSION=${{ inputs.ref }}
           platforms: linux/arm/v5
-
-      - if: steps.check_release.outputs.new_version
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          echo "${{ steps.check_release.outputs.new_version }}" > latest_version.txt
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add latest_version.txt
-          git commit -m "ci: update latest_version.txt to ${{ steps.check_release.outputs.new_version }}"
-          git push "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:${GITHUB_REF}
-
-      - if: steps.check_release.outputs.new_version
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          if ! git rev-parse ${{ steps.check_release.outputs.new_version }} >/dev/null 2>&1; then
-            git tag ${{ steps.check_release.outputs.new_version }}
-            git push "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" ${{ steps.check_release.outputs.new_version }}
-          else
-            echo "Tag ${{ steps.check_release.outputs.new_version }} already exists."
-          fi
-
-      - id: release_check
-        if: steps.check_release.outputs.new_version
-        run: |
-          if gh release view ${{ steps.check_release.outputs.new_version }} >/dev/null 2>&1; then
-            echo "exists=true" >> $GITHUB_OUTPUT
-          else
-            echo "exists=false" >> $GITHUB_OUTPUT
-          fi
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Create GitHub Release
-        if: steps.check_release.outputs.new_version && steps.release_check.outputs.exists == 'false'
-        uses: softprops/action-gh-release@v3
-        with:
-          tag_name: ${{ steps.check_release.outputs.new_version }}
-          name: "cloudflared-armv5 ${{ steps.check_release.outputs.new_version }}"
-          body: "Automated release for cloudflared-armv5 version ${{ steps.check_release.outputs.new_version }}"
-          draft: false
-          prerelease: false
-
-      - name: Prepare source archive
-        if: steps.check_release.outputs.new_version
-        run: |
-          git archive --format=zip --output=cloudflared-armv5-${{ steps.check_release.outputs.new_version }}.zip HEAD
-
-      - name: Upload source archive to release
-        if: steps.check_release.outputs.new_version && steps.release_check.outputs.exists == 'true'
-        uses: softprops/action-gh-release@v3
-        with:
-          tag_name: ${{ steps.check_release.outputs.new_version }}
-          files: cloudflared-armv5-${{ steps.check_release.outputs.new_version }}.zip
-          fail_on_unmatched_files: false
