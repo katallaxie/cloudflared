@@ -11,7 +11,7 @@ RUN \
       /var/tmp/* \
       /tmp/*
 
-COPY --chmod=0755 /cloudflared/cloudflared /usr/local/bin/cloudflared
+COPY --chmod=0755 /cloudflared/cloudflared /usr/local/bin
 
 # command / entrypoint of container
 ENTRYPOINT ["cloudflared", "--no-autoupdate"]
